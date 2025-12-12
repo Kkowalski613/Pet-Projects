@@ -1,0 +1,2024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEEBLER</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0f2847 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            padding: 10px;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            text-shadow: 0 0 30px #ff4757, 0 0 60px #ff4757;
+            letter-spacing: 8px;
+            font-weight: 300;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: rgba(255,200,100,0.8);
+            font-size: 0.9rem;
+            font-weight: 300;
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            padding: 10px 20px;
+            gap: 20px;
+        }
+
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 220px;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 0 60px rgba(0,0,0,0.5), inset 0 0 100px rgba(255,255,255,0.02);
+            background: radial-gradient(ellipse at center, #1a2a4a 0%, #0a0a1a 100%);
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 200px;
+            flex-shrink: 0;
+        }
+
+        .panel-box {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-title {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
+        #startBtn {
+            width: 100%;
+            background: linear-gradient(135deg, #ff4757, #ff6b81);
+            border: none;
+            padding: 15px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            border-radius: 12px;
+            cursor: pointer;
+            color: #fff;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #startBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 71, 87, 0.4);
+        }
+
+        #startBtn:disabled {
+            background: linear-gradient(135deg, #2ed573, #7bed9f);
+            cursor: default;
+        }
+
+        .slider-container {
+            margin-top: 8px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            color: rgba(255,255,255,0.6);
+            font-size: 0.75rem;
+            margin-bottom: 5px;
+        }
+
+        .slider-value {
+            color: #ffa502;
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.1);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffa502, #ff6b81);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffa502, #ff6b81);
+            cursor: pointer;
+            border: none;
+        }
+
+        .volume-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .volume-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .volume-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #2ed573, #ffa502, #ff6b81, #ff4757);
+            transition: width 0.05s;
+            border-radius: 8px;
+        }
+
+        .threshold-marker {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            background: #fff;
+            opacity: 0.7;
+            z-index: 2;
+        }
+
+        .volume-value {
+            color: #fff;
+            font-size: 1.2rem;
+            font-weight: 300;
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .health-container {
+            text-align: center;
+        }
+
+        .health-circle {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: conic-gradient(#ff4757 0%, #ff4757 100%, rgba(255,255,255,0.1) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            position: relative;
+        }
+
+        .health-circle::before {
+            content: '';
+            position: absolute;
+            width: 52px;
+            height: 52px;
+            background: #0f1a2a;
+            border-radius: 50%;
+        }
+
+        .health-value {
+            position: relative;
+            z-index: 1;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .health-label {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.7rem;
+        }
+
+        .status-indicators {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255,255,255,0.6);
+            font-size: 0.7rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff4757;
+        }
+
+        .status-dot.healing {
+            background: #2ed573;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .status-dot.protected {
+            background: #ffa502;
+            animation: pulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .speech-box {
+            min-height: 70px;
+        }
+
+        .speech-text {
+            color: #fff;
+            font-size: 0.8rem;
+            font-style: italic;
+            line-height: 1.4;
+            min-height: 45px;
+        }
+
+        #resetBtn {
+            width: 100%;
+            background: rgba(46, 213, 115, 0.2);
+            border: 1px solid rgba(46, 213, 115, 0.5);
+            padding: 10px;
+            font-size: 0.8rem;
+            font-family: inherit;
+            border-radius: 10px;
+            cursor: pointer;
+            color: #2ed573;
+            font-weight: 500;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #resetBtn:hover {
+            background: rgba(46, 213, 115, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .damage-popup {
+            position: absolute;
+            color: #ff4757;
+            font-size: 2rem;
+            font-weight: bold;
+            pointer-events: none;
+            text-shadow: 0 0 10px rgba(255,71,87,0.8), 2px 2px 0 #000;
+            animation: damageFloat 1s forwards;
+            z-index: 100;
+        }
+
+        @keyframes damageFloat {
+            0% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+            100% { opacity: 0; transform: translateY(-80px) scale(1.5) rotate(10deg); }
+        }
+
+        .heal-popup {
+            position: absolute;
+            color: #2ed573;
+            font-size: 1.2rem;
+            font-weight: bold;
+            pointer-events: none;
+            text-shadow: 0 0 10px rgba(46,213,115,0.8);
+            animation: healFloat 1s forwards;
+            z-index: 100;
+        }
+
+        @keyframes healFloat {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-40px); }
+        }
+
+        .trauma-meter {
+            margin-top: 8px;
+        }
+
+        .trauma-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .trauma-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #a55eea, #8854d0);
+            transition: width 0.3s;
+        }
+
+        .trauma-label {
+            color: rgba(255,255,255,0.4);
+            font-size: 0.6rem;
+            margin-top: 4px;
+        }
+
+        .ko-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+            z-index: 50;
+        }
+
+        .ko-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .ko-text {
+            color: #ff4757;
+            font-size: 4rem;
+            font-weight: bold;
+            text-shadow: 0 0 50px #ff4757;
+            animation: koFlash 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes koFlash {
+            from { opacity: 1; }
+            to { opacity: 0.5; }
+        }
+
+        .ko-subtitle {
+            color: rgba(255,255,255,0.6);
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+
+        .distress-indicator {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 10;
+        }
+
+        .distress-indicator.mild {
+            background: rgba(255, 165, 2, 0.3);
+            color: #ffa502;
+            border: 1px solid #ffa502;
+        }
+
+        .distress-indicator.moderate {
+            background: rgba(255, 107, 129, 0.3);
+            color: #ff6b81;
+            border: 1px solid #ff6b81;
+        }
+
+        .distress-indicator.severe {
+            background: rgba(255, 71, 87, 0.5);
+            color: #fff;
+            border: 1px solid #ff4757;
+            animation: distressPulse 0.3s ease-in-out infinite;
+        }
+
+        @keyframes distressPulse {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.1); }
+        }
+
+        .error-msg {
+            color: #ff6b6b;
+            font-size: 0.7rem;
+            margin-top: 6px;
+            text-align: center;
+        }
+
+        .combo-indicator {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            background: rgba(255, 165, 2, 0.3);
+            color: #ffa502;
+            border: 1px solid #ffa502;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>GEEBLER</h1>
+        <p class="subtitle">Scream into the void. The void screams back.</p>
+    </div>
+
+    <div class="main-container">
+        <div class="left-panel">
+            <div class="panel-box">
+                <button id="startBtn">🎤 Enable Mic</button>
+                <div class="error-msg" id="errorMsg"></div>
+            </div>
+
+            <div class="panel-box volume-container">
+                <div class="panel-title">Yell Power</div>
+                <div class="volume-bar">
+                    <div class="volume-fill" id="volumeFill"></div>
+                    <div class="threshold-marker" id="thresholdMarker"></div>
+                </div>
+                <div class="volume-value" id="volumeValue">0</div>
+                
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Mic Sensitivity</span>
+                        <span class="slider-value" id="sensitivityValue">50%</span>
+                    </div>
+                    <input type="range" id="sensitivitySlider" min="10" max="100" value="50">
+                </div>
+            </div>
+
+            <div class="panel-box">
+                <div class="panel-title">Settings</div>
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Max Health</span>
+                        <span class="slider-value" id="maxHealthValue">500</span>
+                    </div>
+                    <input type="range" id="healthSlider" min="100" max="2000" value="500" step="100">
+                </div>
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Damage Threshold</span>
+                        <span class="slider-value" id="thresholdValue">40</span>
+                    </div>
+                    <input type="range" id="thresholdSlider" min="20" max="80" value="40">
+                </div>
+            </div>
+
+            <div class="panel-box">
+                <div class="panel-title">Status</div>
+                <div class="status-indicators">
+                    <div class="status-item">
+                        <div class="status-dot" id="micStatus"></div>
+                        <span id="micLabel">Mic Off</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-dot healing" id="healStatus" style="opacity: 0;"></div>
+                        <span id="healLabel">Regenerating...</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-dot protected" id="comboStatus" style="opacity: 0;"></div>
+                        <span id="comboLabel">Combo Protection</span>
+                    </div>
+                </div>
+                <div class="trauma-meter">
+                    <div class="trauma-bar">
+                        <div class="trauma-fill" id="traumaFill"></div>
+                    </div>
+                    <div class="trauma-label">Trauma: <span id="traumaValue">0%</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-container" id="canvasContainer">
+            <canvas id="gameCanvas"></canvas>
+            <div class="distress-indicator" id="distressIndicator">DISTRESS</div>
+            <div class="combo-indicator" id="comboIndicator">🛡️ Combo Protection Active</div>
+            <div class="ko-overlay" id="koOverlay">
+                <div class="ko-text">K.O.</div>
+                <div class="ko-subtitle">Geebler has been defeated...</div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="panel-box health-container">
+                <div class="panel-title">Vitality</div>
+                <div class="health-circle" id="healthCircle">
+                    <span class="health-value" id="healthValue">500</span>
+                </div>
+                <div class="health-label">/ <span id="maxHealthLabel">500</span> HP</div>
+            </div>
+
+            <div class="panel-box speech-box">
+                <div class="panel-title">Geebler Says</div>
+                <div class="speech-text" id="speechText">"Oh no... not again..."</div>
+            </div>
+
+            <div class="panel-box">
+                <button id="resetBtn">⟳ Revive Geebler</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ GAME STATE ============
+        let maxHealth = 500;
+        let health = maxHealth;
+        let trauma = 0;
+        let isKnockedOut = false;
+        let isListening = false;
+        let lastYellTime = 0;
+        let velocity = { x: 0, y: 0, z: 0 };
+        let angularVelocity = { x: 0, y: 0, z: 0 };
+        let currentVolume = 0;
+        let shakeIntensity = 0;
+        let isSpeaking = false;
+
+        // Sensitivity & damage settings
+        let micSensitivity = 0.5; // 0.1 to 1.0
+        let damageThreshold = 40; // Volume level needed to cause damage
+
+        // Combo protection
+        let comboCounter = 0;
+        let comboTimer = 0;
+        let comboCooldown = 0;
+        const maxCombo = 10; // After this many hits, protection kicks in
+        const comboResetTime = 0.5; // Seconds of quiet to reset combo
+        const comboCooldownTime = 1.5; // Seconds of protection
+
+        // Animation state
+        let animTime = 0;
+        let blinkTimer = 0;
+        let nextBlinkTime = 2;
+        let isBlinking = false;
+        let blinkProgress = 0;
+        let lookTarget = { x: 0, y: 0 };
+        let currentLook = { x: 0, y: 0 };
+        let nextLookTime = 0;
+        let gestureTimer = 0;
+        let currentGesture = 'idle';
+        let gestureProgress = 0;
+        let breathePhase = 0;
+        let isScared = false;
+        let scaredTimer = 0;
+
+        // ============ SPEECH PHRASES ============
+        const idlePhrases = [
+            "Please... I have a family of smaller balls...",
+            "Why do you do this to me?",
+            "I used to be in the World Cup, you know...",
+            "Is this what I deserve?",
+            "I'm literally just standing here...",
+            "My therapist says I need boundaries...",
+            "Maybe we could just... talk instead?",
+            "I've developed trust issues because of you.",
+        ];
+
+        const hurtPhrases = [
+            "AAAHHH!", "WHY?!", "THE PAIN!", "MY PENTAGONS!", "NOT THE FACE!",
+            "I'M JUST A BALL!", "STOP IT!", "OOF!", "OUCH OUCH OUCH!",
+            "THIS IS ABUSE!", "MY STITCHING!", "MAKE IT STOP!", "NOOOOO!",
+        ];
+
+        const criticalPhrases = [
+            "I... I can't take much more...", "Everything is going dark...",
+            "Tell my family... I love them...", "Is this... the end?",
+        ];
+
+        const koPhrases = [
+            "X_X ...geebler.exe has stopped working...",
+            "X_X ...fatal error in ball.dll...",
+        ];
+
+        const healingPhrases = [
+            "Ah... that's better...",
+            "The pain is fading... for now.",
+        ];
+
+        const talkBackPhrases = [
+            "Is that all you've got?!",
+            "My grandmother yells louder than that!",
+            "Pathetic!", "You call that yelling?!",
+        ];
+
+        const comboProtectionPhrases = [
+            "Ha! I'm protected now!",
+            "Can't hurt me right now!",
+            "Brief respite...",
+            "The shield holds!",
+        ];
+
+        // ============ THREE.JS SETUP ============
+        const canvas = document.getElementById('gameCanvas');
+        const container = document.getElementById('canvasContainer');
+        
+        let scene, camera, renderer, geeblerGroup, faceGroup, ball;
+        let leftEye, rightEye, mouthGroup;
+        let leftArm, rightArm, leftLeg, rightLeg;
+        let bruises = [], bandaids = [], sweatDrops = [], stars = [], tears = [];
+        let starGroup, leftX, rightX;
+
+        function init() {
+            scene = new THREE.Scene();
+            
+            camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.z = 5;
+            camera.position.y = 0.5;
+
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
+            scene.add(ambientLight);
+
+            const mainLight = new THREE.DirectionalLight(0xffffff, 1);
+            mainLight.position.set(5, 10, 5);
+            mainLight.castShadow = true;
+            scene.add(mainLight);
+
+            const fillLight = new THREE.DirectionalLight(0x4a90d9, 0.4);
+            fillLight.position.set(-5, 5, -5);
+            scene.add(fillLight);
+
+            const rimLight = new THREE.PointLight(0xff6b6b, 0.3);
+            rimLight.position.set(0, -3, 3);
+            scene.add(rimLight);
+
+            // Ground
+            const groundGeometry = new THREE.CircleGeometry(6, 64);
+            const groundMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x1a3a2a,
+                roughness: 0.9
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Create Geebler
+            createGeebler();
+            
+            // Update threshold marker
+            updateThresholdMarker();
+            
+            // Start animation
+            animate(0);
+        }
+
+        function createGeebler() {
+            geeblerGroup = new THREE.Group();
+            scene.add(geeblerGroup);
+
+            // Main ball body
+            const ballGeometry = new THREE.SphereGeometry(1, 64, 64);
+            const ballMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 0.2,
+                metalness: 0.05,
+            });
+            ball = new THREE.Mesh(ballGeometry, ballMaterial);
+            ball.castShadow = true;
+            geeblerGroup.add(ball);
+
+            // Pentagon patches
+            const patternMaterial = new THREE.MeshStandardMaterial({
+                color: 0x1a1a2e,
+                roughness: 0.3
+            });
+
+            const pentagonPositions = [
+                new THREE.Vector3(0, 1, 0),
+                new THREE.Vector3(0, -1, 0),
+                new THREE.Vector3(1, 0, 0),
+                new THREE.Vector3(-1, 0, 0),
+                new THREE.Vector3(0, 0.5, 0.85),
+                new THREE.Vector3(0, -0.5, 0.85),
+                new THREE.Vector3(0.7, 0.5, 0.5),
+                new THREE.Vector3(-0.7, 0.5, 0.5),
+                new THREE.Vector3(0.7, -0.5, 0.5),
+                new THREE.Vector3(-0.7, -0.5, 0.5),
+            ];
+
+            pentagonPositions.forEach(pos => {
+                const shape = new THREE.Shape();
+                const sides = 5;
+                const radius = 0.22;
+                for (let i = 0; i < sides; i++) {
+                    const angle = (i / sides) * Math.PI * 2 - Math.PI / 2;
+                    const x = Math.cos(angle) * radius;
+                    const y = Math.sin(angle) * radius;
+                    if (i === 0) shape.moveTo(x, y);
+                    else shape.lineTo(x, y);
+                }
+                shape.closePath();
+                
+                const geometry = new THREE.ShapeGeometry(shape);
+                const pentagon = new THREE.Mesh(geometry, patternMaterial);
+                pentagon.position.copy(pos).normalize().multiplyScalar(1.005);
+                pentagon.lookAt(pos.clone().multiplyScalar(2));
+                geeblerGroup.add(pentagon);
+            });
+
+            // Face
+            faceGroup = new THREE.Group();
+            faceGroup.position.z = 0.85;
+            geeblerGroup.add(faceGroup);
+
+            // Eyes (open by default - no eyelids covering them)
+            leftEye = createEye(-0.28);
+            rightEye = createEye(0.28);
+            faceGroup.add(leftEye);
+            faceGroup.add(rightEye);
+
+            // Mouth
+            mouthGroup = new THREE.Group();
+            mouthGroup.position.set(0, -0.25, 0.25);
+
+            const mouthShape = new THREE.Shape();
+            mouthShape.moveTo(-0.22, 0.08);
+            mouthShape.quadraticCurveTo(0, 0.12, 0.22, 0.08);
+            mouthShape.quadraticCurveTo(0.15, -0.12, 0, -0.15);
+            mouthShape.quadraticCurveTo(-0.15, -0.12, -0.22, 0.08);
+
+            const mouthGeometry = new THREE.ShapeGeometry(mouthShape);
+            const mouthMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x2d1f1f, 
+                side: THREE.DoubleSide
+            });
+            const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
+            mouthGroup.add(mouth);
+
+            // Teeth
+            const teethGeometry = new THREE.BoxGeometry(0.3, 0.07, 0.02);
+            const teethMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            const teeth = new THREE.Mesh(teethGeometry, teethMaterial);
+            teeth.position.set(0, 0.04, 0.01);
+            mouthGroup.add(teeth);
+
+            // Tongue
+            const tongueGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+            const tongueMaterial = new THREE.MeshStandardMaterial({ color: 0xff6b8a });
+            const tongue = new THREE.Mesh(tongueGeometry, tongueMaterial);
+            tongue.scale.set(1, 0.5, 0.5);
+            tongue.position.set(0, -0.05, 0.02);
+            mouthGroup.add(tongue);
+
+            faceGroup.add(mouthGroup);
+
+            // Limbs
+            createLimbs();
+
+            // Damage visuals
+            createDamageVisuals();
+
+            // X eyes for KO
+            leftX = createXEye();
+            leftX.position.set(-0.28, 0.15, 0.4);
+            faceGroup.add(leftX);
+
+            rightX = createXEye();
+            rightX.position.set(0.28, 0.15, 0.4);
+            faceGroup.add(rightX);
+        }
+
+        function createEye(x) {
+            const eyeGroup = new THREE.Group();
+            eyeGroup.position.set(x, 0.15, 0.2);
+            
+            // Eye white
+            const eyeGeometry = new THREE.SphereGeometry(0.18, 32, 32);
+            const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1 });
+            const eyeWhite = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            eyeGroup.add(eyeWhite);
+            
+            // Iris
+            const irisGeometry = new THREE.SphereGeometry(0.09, 32, 32);
+            const irisMaterial = new THREE.MeshStandardMaterial({ color: 0x4a90d9, roughness: 0.3 });
+            const iris = new THREE.Mesh(irisGeometry, irisMaterial);
+            iris.position.z = 0.1;
+            iris.scale.z = 0.4;
+            iris.userData.type = 'iris';
+            iris.userData.baseX = 0;
+            iris.userData.baseY = 0;
+            eyeGroup.add(iris);
+            
+            // Pupil
+            const pupilGeometry = new THREE.SphereGeometry(0.05, 32, 32);
+            const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+            const pupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+            pupil.position.z = 0.14;
+            pupil.scale.z = 0.4;
+            pupil.userData.type = 'pupil';
+            pupil.userData.baseX = 0;
+            pupil.userData.baseY = 0;
+            eyeGroup.add(pupil);
+            
+            // Highlight
+            const highlightGeometry = new THREE.SphereGeometry(0.03, 16, 16);
+            const highlightMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const highlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
+            highlight.position.set(0.04, 0.04, 0.16);
+            highlight.userData.type = 'highlight';
+            eyeGroup.add(highlight);
+            
+            // Eyebrow
+            const browGeometry = new THREE.BoxGeometry(0.22, 0.05, 0.03);
+            const browMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1a2e });
+            const eyebrow = new THREE.Mesh(browGeometry, browMaterial);
+            eyebrow.position.set(0, 0.24, 0.1);
+            eyebrow.userData.type = 'eyebrow';
+            eyebrow.userData.baseY = 0.24;
+            eyeGroup.add(eyebrow);
+            
+            // Upper eyelid (for blinking) - starts scaled to 0 (open)
+            const lidGeometry = new THREE.SphereGeometry(0.19, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
+            const lidMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xf0f0f0,
+                side: THREE.DoubleSide
+            });
+            const eyelid = new THREE.Mesh(lidGeometry, lidMaterial);
+            eyelid.rotation.x = Math.PI;
+            eyelid.position.z = 0.02;
+            eyelid.scale.y = 0; // Fully open
+            eyelid.userData.type = 'eyelid';
+            eyeGroup.add(eyelid);
+            
+            return eyeGroup;
+        }
+
+        function createLimbs() {
+            const limbMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.4 });
+            const whiteMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
+
+            leftArm = createArm(limbMaterial, whiteMaterial);
+            leftArm.position.set(-1.05, 0.1, 0);
+            leftArm.userData.baseRotZ = 0.5;
+            leftArm.rotation.z = 0.5;
+            geeblerGroup.add(leftArm);
+
+            rightArm = createArm(limbMaterial, whiteMaterial);
+            rightArm.position.set(1.05, 0.1, 0);
+            rightArm.userData.baseRotZ = -0.5;
+            rightArm.rotation.z = -0.5;
+            rightArm.scale.x = -1;
+            geeblerGroup.add(rightArm);
+
+            leftLeg = createLeg(limbMaterial, whiteMaterial);
+            leftLeg.position.set(-0.35, -1.1, 0);
+            leftLeg.userData.baseRotZ = 0.08;
+            leftLeg.rotation.z = 0.08;
+            geeblerGroup.add(leftLeg);
+
+            rightLeg = createLeg(limbMaterial, whiteMaterial);
+            rightLeg.position.set(0.35, -1.1, 0);
+            rightLeg.userData.baseRotZ = -0.08;
+            rightLeg.rotation.z = -0.08;
+            geeblerGroup.add(rightLeg);
+        }
+
+        function createArm(limbMaterial, whiteMaterial) {
+            const armGroup = new THREE.Group();
+            
+            const upperArm = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.06, 0.07, 0.35, 16),
+                limbMaterial
+            );
+            upperArm.userData.type = 'upper';
+            armGroup.add(upperArm);
+            
+            const lowerArmGroup = new THREE.Group();
+            lowerArmGroup.position.y = -0.18;
+            lowerArmGroup.userData.type = 'lowerGroup';
+            
+            const lowerArm = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.05, 0.06, 0.3, 16),
+                limbMaterial
+            );
+            lowerArm.position.y = -0.12;
+            lowerArmGroup.add(lowerArm);
+            
+            const hand = new THREE.Mesh(
+                new THREE.SphereGeometry(0.11, 16, 16),
+                whiteMaterial
+            );
+            hand.position.y = -0.3;
+            lowerArmGroup.add(hand);
+            
+            for (let f = 0; f < 4; f++) {
+                const finger = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.03, 8, 8),
+                    whiteMaterial
+                );
+                finger.position.set((f - 1.5) * 0.035, -0.38, 0.04);
+                lowerArmGroup.add(finger);
+            }
+            
+            armGroup.add(lowerArmGroup);
+            return armGroup;
+        }
+
+        function createLeg(limbMaterial, whiteMaterial) {
+            const legGroup = new THREE.Group();
+            
+            const upperLeg = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.07, 0.08, 0.3, 16),
+                limbMaterial
+            );
+            legGroup.add(upperLeg);
+            
+            const lowerLegGroup = new THREE.Group();
+            lowerLegGroup.position.y = -0.15;
+            lowerLegGroup.userData.type = 'lowerGroup';
+            
+            const lowerLeg = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.06, 0.07, 0.25, 16),
+                limbMaterial
+            );
+            lowerLeg.position.y = -0.1;
+            lowerLegGroup.add(lowerLeg);
+            
+            const shoe = new THREE.Mesh(
+                new THREE.BoxGeometry(0.16, 0.1, 0.22),
+                whiteMaterial
+            );
+            shoe.position.set(0, -0.27, 0.04);
+            lowerLegGroup.add(shoe);
+            
+            const sole = new THREE.Mesh(
+                new THREE.BoxGeometry(0.17, 0.03, 0.23),
+                new THREE.MeshStandardMaterial({ color: 0x333333 })
+            );
+            sole.position.set(0, -0.33, 0.04);
+            lowerLegGroup.add(sole);
+            
+            legGroup.add(lowerLegGroup);
+            return legGroup;
+        }
+
+        function createDamageVisuals() {
+            // Bruises
+            const bruisePositions = [
+                { pos: new THREE.Vector3(0.7, 0.5, 0.5), size: 0.12 },
+                { pos: new THREE.Vector3(-0.6, 0.3, 0.6), size: 0.15 },
+                { pos: new THREE.Vector3(0.3, -0.5, 0.7), size: 0.1 },
+                { pos: new THREE.Vector3(-0.5, -0.4, 0.6), size: 0.14 },
+                { pos: new THREE.Vector3(0.8, -0.2, 0.4), size: 0.11 },
+            ];
+
+            bruisePositions.forEach(data => {
+                const bruiseGeometry = new THREE.CircleGeometry(data.size, 32);
+                const bruiseMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x6b2d7b,
+                    transparent: true,
+                    opacity: 0,
+                    side: THREE.DoubleSide
+                });
+                const bruise = new THREE.Mesh(bruiseGeometry, bruiseMaterial);
+                bruise.position.copy(data.pos).normalize().multiplyScalar(1.01);
+                bruise.lookAt(data.pos.clone().multiplyScalar(2));
+                bruises.push(bruise);
+                geeblerGroup.add(bruise);
+            });
+
+            // Bandaids
+            const bandaidData = [
+                { pos: new THREE.Vector3(0.5, 0.6, 0.5), rot: 0.3 },
+                { pos: new THREE.Vector3(-0.4, -0.5, 0.65), rot: -0.5 },
+            ];
+
+            bandaidData.forEach(data => {
+                const bandaidGroup = new THREE.Group();
+                
+                const bandaidGeometry = new THREE.BoxGeometry(0.22, 0.07, 0.01);
+                const bandaidMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xf5c469,
+                    transparent: true,
+                    opacity: 0
+                });
+                const bandaid = new THREE.Mesh(bandaidGeometry, bandaidMaterial);
+                bandaidGroup.add(bandaid);
+                
+                const padGeometry = new THREE.BoxGeometry(0.08, 0.05, 0.012);
+                const padMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0
+                });
+                const pad = new THREE.Mesh(padGeometry, padMaterial);
+                pad.position.z = 0.005;
+                bandaidGroup.add(pad);
+                
+                bandaidGroup.position.copy(data.pos).normalize().multiplyScalar(1.02);
+                bandaidGroup.lookAt(data.pos.clone().multiplyScalar(2));
+                bandaidGroup.rotateZ(data.rot);
+                
+                bandaids.push(bandaidGroup);
+                geeblerGroup.add(bandaidGroup);
+            });
+
+            // Sweat drops
+            const sweatPositions = [
+                new THREE.Vector3(-0.85, 0.45, 0.35),
+                new THREE.Vector3(-0.9, 0.25, 0.3),
+                new THREE.Vector3(0.85, 0.35, 0.35),
+            ];
+
+            sweatPositions.forEach(pos => {
+                const dropGeometry = new THREE.SphereGeometry(0.04, 8, 8);
+                const dropMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x74b9ff,
+                    transparent: true,
+                    opacity: 0
+                });
+                const drop = new THREE.Mesh(dropGeometry, dropMaterial);
+                drop.scale.set(0.8, 1.3, 0.8);
+                drop.position.copy(pos);
+                drop.userData.originalY = pos.y;
+                sweatDrops.push(drop);
+                geeblerGroup.add(drop);
+            });
+
+            // Tears
+            for (let i = 0; i < 4; i++) {
+                const tearGeometry = new THREE.SphereGeometry(0.025, 8, 8);
+                const tearMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x74b9ff,
+                    transparent: true,
+                    opacity: 0
+                });
+                const tear = new THREE.Mesh(tearGeometry, tearMaterial);
+                tear.scale.set(0.8, 1.4, 0.8);
+                tear.userData.active = false;
+                tear.userData.velocity = 0;
+                tears.push(tear);
+                faceGroup.add(tear);
+            }
+
+            // Dizzy stars
+            starGroup = new THREE.Group();
+            starGroup.position.y = 1.3;
+            starGroup.visible = false;
+            geeblerGroup.add(starGroup);
+
+            for (let i = 0; i < 5; i++) {
+                const starShape = new THREE.Shape();
+                const outerRadius = 0.07;
+                const innerRadius = 0.025;
+                for (let j = 0; j < 10; j++) {
+                    const radius = j % 2 === 0 ? outerRadius : innerRadius;
+                    const angle = (j / 10) * Math.PI * 2 - Math.PI / 2;
+                    const x = Math.cos(angle) * radius;
+                    const y = Math.sin(angle) * radius;
+                    if (j === 0) starShape.moveTo(x, y);
+                    else starShape.lineTo(x, y);
+                }
+                const starGeometry = new THREE.ShapeGeometry(starShape);
+                const starMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xffd700, 
+                    side: THREE.DoubleSide 
+                });
+                const star = new THREE.Mesh(starGeometry, starMaterial);
+                star.userData.angle = (i / 5) * Math.PI * 2;
+                stars.push(star);
+                starGroup.add(star);
+            }
+        }
+
+        function createXEye() {
+            const xGroup = new THREE.Group();
+            const xMaterial = new THREE.MeshBasicMaterial({ color: 0x1a1a2e });
+            
+            const bar1 = new THREE.Mesh(
+                new THREE.BoxGeometry(0.18, 0.04, 0.02),
+                xMaterial
+            );
+            bar1.rotation.z = Math.PI / 4;
+            xGroup.add(bar1);
+            
+            const bar2 = new THREE.Mesh(
+                new THREE.BoxGeometry(0.18, 0.04, 0.02),
+                xMaterial
+            );
+            bar2.rotation.z = -Math.PI / 4;
+            xGroup.add(bar2);
+            
+            xGroup.visible = false;
+            return xGroup;
+        }
+
+        // ============ ANIMATION FUNCTIONS ============
+        function updateIdleAnimations(deltaTime) {
+            if (isKnockedOut) return;
+            
+            animTime += deltaTime;
+            
+            // Breathing
+            breathePhase += deltaTime * 2;
+            const breatheScale = 1 + Math.sin(breathePhase) * 0.02;
+            if (ball) {
+                ball.scale.set(breatheScale, breatheScale * 0.98, breatheScale);
+            }
+            
+            // Blinking
+            blinkTimer += deltaTime;
+            if (!isBlinking && blinkTimer >= nextBlinkTime) {
+                isBlinking = true;
+                blinkProgress = 0;
+                nextBlinkTime = 2 + Math.random() * 4;
+                blinkTimer = 0;
+            }
+            
+            if (isBlinking) {
+                blinkProgress += deltaTime * 8;
+                const blinkAmount = blinkProgress < 0.5 
+                    ? blinkProgress * 2 
+                    : 2 - blinkProgress * 2;
+                
+                // Apply to eyelids inside eye groups
+                [leftEye, rightEye].forEach(eye => {
+                    if (!eye) return;
+                    eye.children.forEach(child => {
+                        if (child.userData.type === 'eyelid') {
+                            child.scale.y = Math.max(0, blinkAmount);
+                        }
+                    });
+                });
+                
+                if (blinkProgress >= 1) {
+                    isBlinking = false;
+                    [leftEye, rightEye].forEach(eye => {
+                        if (!eye) return;
+                        eye.children.forEach(child => {
+                            if (child.userData.type === 'eyelid') {
+                                child.scale.y = 0;
+                            }
+                        });
+                    });
+                }
+            }
+            
+            // Looking around
+            nextLookTime -= deltaTime;
+            if (nextLookTime <= 0 && !isScared) {
+                lookTarget.x = (Math.random() - 0.5) * 0.08;
+                lookTarget.y = (Math.random() - 0.5) * 0.06;
+                nextLookTime = 1 + Math.random() * 3;
+            }
+            
+            currentLook.x += (lookTarget.x - currentLook.x) * deltaTime * 3;
+            currentLook.y += (lookTarget.y - currentLook.y) * deltaTime * 3;
+            
+            [leftEye, rightEye].forEach(eye => {
+                if (!eye) return;
+                eye.children.forEach(child => {
+                    if (child.userData.type === 'iris' || child.userData.type === 'pupil') {
+                        child.position.x = child.userData.baseX + currentLook.x;
+                        child.position.y = child.userData.baseY + currentLook.y;
+                    }
+                    if (child.userData.type === 'highlight') {
+                        child.position.x = 0.04 + currentLook.x * 0.5;
+                        child.position.y = 0.04 + currentLook.y * 0.5;
+                    }
+                });
+            });
+            
+            // Gestures
+            gestureTimer += deltaTime;
+            if (currentGesture === 'idle' && gestureTimer > 5 + Math.random() * 5 && !isScared) {
+                const gestures = ['wave', 'shrug', 'lookAround', 'tap'];
+                currentGesture = gestures[Math.floor(Math.random() * gestures.length)];
+                gestureProgress = 0;
+                gestureTimer = 0;
+            }
+            
+            updateGesture(deltaTime);
+            
+            // Body sway
+            if (!isScared && currentVolume < damageThreshold * 0.5) {
+                const swayX = Math.sin(animTime * 0.8) * 0.03;
+                const swayZ = Math.cos(animTime * 0.6) * 0.02;
+                geeblerGroup.rotation.z = swayZ;
+                faceGroup.rotation.y = swayX;
+            }
+            
+            // Scared state
+            if (isScared) {
+                scaredTimer -= deltaTime;
+                if (scaredTimer <= 0) {
+                    isScared = false;
+                }
+                geeblerGroup.rotation.z = (Math.random() - 0.5) * 0.05;
+                geeblerGroup.rotation.x = (Math.random() - 0.5) * 0.03;
+            }
+        }
+
+        function updateGesture(deltaTime) {
+            if (currentGesture === 'idle') return;
+            
+            gestureProgress += deltaTime;
+            
+            switch(currentGesture) {
+                case 'wave':
+                    if (rightArm) {
+                        const wavePhase = Math.sin(gestureProgress * 8) * 0.4;
+                        rightArm.rotation.z = rightArm.userData.baseRotZ - 1.2 + wavePhase;
+                        rightArm.rotation.x = -0.3;
+                        
+                        const lowerArm = rightArm.children.find(c => c.userData?.type === 'lowerGroup');
+                        if (lowerArm) {
+                            lowerArm.rotation.x = -0.8 + Math.sin(gestureProgress * 8) * 0.3;
+                        }
+                    }
+                    if (gestureProgress > 2) {
+                        resetArmPose(rightArm);
+                        currentGesture = 'idle';
+                    }
+                    break;
+                    
+                case 'shrug':
+                    const shrugAmount = gestureProgress < 0.3 
+                        ? gestureProgress / 0.3 
+                        : gestureProgress < 0.7 
+                            ? 1 
+                            : 1 - (gestureProgress - 0.7) / 0.3;
+                    
+                    if (leftArm) {
+                        leftArm.rotation.z = leftArm.userData.baseRotZ - shrugAmount * 0.5;
+                        leftArm.position.y = 0.1 + shrugAmount * 0.15;
+                    }
+                    if (rightArm) {
+                        rightArm.rotation.z = rightArm.userData.baseRotZ + shrugAmount * 0.5;
+                        rightArm.position.y = 0.1 + shrugAmount * 0.15;
+                    }
+                    
+                    [leftEye, rightEye].forEach(eye => {
+                        if (!eye) return;
+                        eye.children.forEach(child => {
+                            if (child.userData.type === 'eyebrow') {
+                                child.position.y = child.userData.baseY + shrugAmount * 0.05;
+                            }
+                        });
+                    });
+                    
+                    if (gestureProgress > 1) {
+                        resetArmPose(leftArm);
+                        resetArmPose(rightArm);
+                        resetEyebrows();
+                        currentGesture = 'idle';
+                    }
+                    break;
+                    
+                case 'lookAround':
+                    const lookPhase = gestureProgress * 2;
+                    if (lookPhase < 1) {
+                        lookTarget.x = 0.1;
+                    } else if (lookPhase < 2) {
+                        lookTarget.x = -0.1;
+                    } else {
+                        lookTarget.x = 0;
+                        currentGesture = 'idle';
+                    }
+                    break;
+                    
+                case 'tap':
+                    if (rightLeg) {
+                        const tapPhase = (gestureProgress * 6) % 1;
+                        const lowerLeg = rightLeg.children.find(c => c.userData?.type === 'lowerGroup');
+                        if (lowerLeg) {
+                            lowerLeg.rotation.x = tapPhase < 0.5 ? -tapPhase * 0.4 : -(1 - tapPhase) * 0.4;
+                        }
+                    }
+                    if (gestureProgress > 2) {
+                        resetLegPose(rightLeg);
+                        currentGesture = 'idle';
+                    }
+                    break;
+            }
+        }
+
+        function resetArmPose(arm) {
+            if (!arm) return;
+            arm.rotation.z = arm.userData.baseRotZ;
+            arm.rotation.x = 0;
+            arm.position.y = 0.1;
+            const lowerArm = arm.children.find(c => c.userData?.type === 'lowerGroup');
+            if (lowerArm) {
+                lowerArm.rotation.x = 0;
+            }
+        }
+
+        function resetLegPose(leg) {
+            if (!leg) return;
+            const lowerLeg = leg.children.find(c => c.userData?.type === 'lowerGroup');
+            if (lowerLeg) {
+                lowerLeg.rotation.x = 0;
+            }
+        }
+
+        function resetEyebrows() {
+            [leftEye, rightEye].forEach(eye => {
+                if (!eye) return;
+                eye.children.forEach(child => {
+                    if (child.userData.type === 'eyebrow') {
+                        child.position.y = child.userData.baseY;
+                        child.rotation.z = 0;
+                    }
+                });
+            });
+        }
+
+        function triggerScared() {
+            isScared = true;
+            scaredTimer = 0.5;
+            currentGesture = 'idle';
+            
+            if (leftArm) {
+                leftArm.rotation.z = 1.2;
+                leftArm.rotation.x = 0.3;
+            }
+            if (rightArm) {
+                rightArm.rotation.z = -1.2;
+                rightArm.rotation.x = 0.3;
+            }
+            
+            lookTarget.x = 0;
+            lookTarget.y = 0;
+        }
+
+        function updateHurtAnimation(intensity) {
+            if (intensity > 0.3) {
+                triggerScared();
+            }
+            
+            // Close eyes at high intensity
+            if (intensity > 0.6) {
+                [leftEye, rightEye].forEach(eye => {
+                    if (!eye) return;
+                    eye.children.forEach(child => {
+                        if (child.userData.type === 'eyelid') {
+                            child.scale.y = (intensity - 0.6) * 2.5;
+                        }
+                    });
+                });
+            }
+            
+            if (intensity > 0.7) {
+                if (leftArm) {
+                    leftArm.rotation.z = 1.5;
+                    leftArm.rotation.x = 0.5;
+                    const lowerArm = leftArm.children.find(c => c.userData?.type === 'lowerGroup');
+                    if (lowerArm) lowerArm.rotation.x = -1.2;
+                }
+                if (rightArm) {
+                    rightArm.rotation.z = -1.5;
+                    rightArm.rotation.x = 0.5;
+                    const lowerArm = rightArm.children.find(c => c.userData?.type === 'lowerGroup');
+                    if (lowerArm) lowerArm.rotation.x = -1.2;
+                }
+            }
+        }
+
+        // ============ UI CONTROLS ============
+        const sensitivitySlider = document.getElementById('sensitivitySlider');
+        const healthSlider = document.getElementById('healthSlider');
+        const thresholdSlider = document.getElementById('thresholdSlider');
+
+        sensitivitySlider.addEventListener('input', (e) => {
+            micSensitivity = e.target.value / 100;
+            document.getElementById('sensitivityValue').textContent = e.target.value + '%';
+        });
+
+        healthSlider.addEventListener('input', (e) => {
+            const newMax = parseInt(e.target.value);
+            const healthRatio = health / maxHealth;
+            maxHealth = newMax;
+            health = Math.round(healthRatio * maxHealth);
+            document.getElementById('maxHealthValue').textContent = newMax;
+            document.getElementById('maxHealthLabel').textContent = newMax;
+            updateHealthUI();
+        });
+
+        thresholdSlider.addEventListener('input', (e) => {
+            damageThreshold = parseInt(e.target.value);
+            document.getElementById('thresholdValue').textContent = e.target.value;
+            updateThresholdMarker();
+        });
+
+        function updateThresholdMarker() {
+            const marker = document.getElementById('thresholdMarker');
+            marker.style.left = damageThreshold + '%';
+        }
+
+        // ============ AUDIO SETUP ============
+        let audioContext;
+        let analyser;
+
+        document.getElementById('startBtn').addEventListener('click', async () => {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.textContent = '';
+            
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+                
+                const microphone = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                analyser.smoothingTimeConstant = 0.5;
+                microphone.connect(analyser);
+                
+                isListening = true;
+                document.getElementById('startBtn').textContent = '🎤 Mic Active';
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('micStatus').style.background = '#2ed573';
+                document.getElementById('micLabel').textContent = 'Mic Active';
+                
+                speak(idlePhrases[Math.floor(Math.random() * idlePhrases.length)]);
+                
+            } catch (err) {
+                console.error('Microphone error:', err);
+                errorMsg.textContent = err.name === 'NotAllowedError' 
+                    ? 'Mic access denied. Check permissions.'
+                    : 'Mic error: ' + err.message;
+                document.getElementById('startBtn').textContent = '🎤 Try Again';
+            }
+        });
+
+        // ============ SPEECH SYNTHESIS ============
+        function speak(text, isHurt = false) {
+            document.getElementById('speechText').textContent = `"${text}"`;
+            
+            if (mouthGroup && !isHurt) {
+                animateMouthSpeaking();
+            }
+            
+            if ('speechSynthesis' in window && !isSpeaking) {
+                speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.pitch = isHurt ? 1.5 : 1.1;
+                utterance.rate = isHurt ? 1.3 : 0.9;
+                utterance.volume = 0.7;
+                
+                utterance.onstart = () => isSpeaking = true;
+                utterance.onend = () => {
+                    isSpeaking = false;
+                    if (mouthGroup) {
+                        mouthGroup.scale.y = 1;
+                        mouthGroup.scale.x = 1;
+                    }
+                };
+                utterance.onerror = () => isSpeaking = false;
+                
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        function animateMouthSpeaking() {
+            let speakAnim = 0;
+            const speakInterval = setInterval(() => {
+                if (!isSpeaking || !mouthGroup) {
+                    clearInterval(speakInterval);
+                    if (mouthGroup) {
+                        mouthGroup.scale.y = 1;
+                        mouthGroup.scale.x = 1;
+                    }
+                    return;
+                }
+                speakAnim += 0.3;
+                mouthGroup.scale.y = 1 + Math.sin(speakAnim) * 0.3;
+                mouthGroup.scale.x = 1 + Math.cos(speakAnim * 1.3) * 0.1;
+            }, 50);
+        }
+
+        // ============ GAME LOOP ============
+        let lastTime = 0;
+        let idleTimer = 0;
+        let healTimer = 0;
+        let talkBackTimer = 0;
+
+        function animate(currentTime) {
+            requestAnimationFrame(animate);
+            
+            const deltaTime = Math.min((currentTime - lastTime) / 1000, 0.1);
+            lastTime = currentTime;
+
+            updateIdleAnimations(deltaTime);
+
+            if (isListening && !isKnockedOut) {
+                processAudio(deltaTime);
+            }
+
+            // Combo cooldown
+            if (comboCooldown > 0) {
+                comboCooldown -= deltaTime;
+                document.getElementById('comboStatus').style.opacity = '1';
+                document.getElementById('comboIndicator').style.opacity = '1';
+                if (comboCooldown <= 0) {
+                    document.getElementById('comboStatus').style.opacity = '0';
+                    document.getElementById('comboIndicator').style.opacity = '0';
+                    comboCounter = 0;
+                }
+            }
+
+            // Combo reset when quiet
+            if (currentVolume < damageThreshold) {
+                comboTimer += deltaTime;
+                if (comboTimer > comboResetTime && comboCooldown <= 0) {
+                    comboCounter = Math.max(0, comboCounter - deltaTime * 5);
+                }
+            } else {
+                comboTimer = 0;
+            }
+
+            // Healing when quiet
+            if (!isKnockedOut && currentVolume < damageThreshold * 0.5 && health < maxHealth) {
+                healTimer += deltaTime;
+                if (healTimer > 0.3) {
+                    health = Math.min(maxHealth, health + 3);
+                    updateHealthUI();
+                    healTimer = 0;
+                    document.getElementById('healStatus').style.opacity = '1';
+                    
+                    if (Math.random() < 0.015) {
+                        showHealPopup();
+                        if (Math.random() < 0.2) {
+                            speak(healingPhrases[Math.floor(Math.random() * healingPhrases.length)]);
+                        }
+                    }
+                }
+            } else {
+                document.getElementById('healStatus').style.opacity = '0';
+                healTimer = 0;
+            }
+
+            // Talk back at moderate volume
+            if (!isKnockedOut && currentVolume > damageThreshold * 0.5 && currentVolume < damageThreshold) {
+                talkBackTimer += deltaTime;
+                if (talkBackTimer > 5 && Math.random() < 0.02) {
+                    speak(talkBackPhrases[Math.floor(Math.random() * talkBackPhrases.length)]);
+                    talkBackTimer = 0;
+                }
+            } else {
+                talkBackTimer = 0;
+            }
+
+            // Idle speech
+            if (!isKnockedOut && currentVolume < damageThreshold * 0.3) {
+                idleTimer += deltaTime;
+                if (idleTimer > 10 && Math.random() < 0.008) {
+                    speak(idlePhrases[Math.floor(Math.random() * idlePhrases.length)]);
+                    idleTimer = 0;
+                }
+            } else {
+                idleTimer = 0;
+            }
+
+            // Physics
+            if (geeblerGroup) {
+                geeblerGroup.position.x += velocity.x * deltaTime;
+                geeblerGroup.position.y += velocity.y * deltaTime;
+                geeblerGroup.rotation.x += angularVelocity.x * deltaTime;
+                geeblerGroup.rotation.y += angularVelocity.y * deltaTime;
+
+                velocity.x *= 0.88;
+                velocity.y *= 0.88;
+                angularVelocity.x *= 0.85;
+                angularVelocity.y *= 0.92;
+                angularVelocity.z *= 0.85;
+
+                if (!isKnockedOut) {
+                    geeblerGroup.position.x += (0 - geeblerGroup.position.x) * 0.06;
+                    geeblerGroup.position.y += (0 - geeblerGroup.position.y) * 0.06;
+                    geeblerGroup.rotation.x += (0 - geeblerGroup.rotation.x) * 0.04;
+                }
+
+                if (!isKnockedOut && currentVolume < damageThreshold * 0.5 && !isScared) {
+                    geeblerGroup.position.y += Math.sin(animTime * 1.5) * 0.001;
+                }
+
+                if (isKnockedOut) {
+                    geeblerGroup.rotation.x += deltaTime * 3;
+                    geeblerGroup.rotation.z += deltaTime * 4;
+                    geeblerGroup.position.y -= deltaTime * 3;
+                    if (geeblerGroup.position.y < -2.5) {
+                        geeblerGroup.position.y = -2.5;
+                    }
+                }
+            }
+
+            // Camera shake
+            if (shakeIntensity > 0) {
+                camera.position.x = (Math.random() - 0.5) * shakeIntensity * 0.1;
+                camera.position.y = 0.5 + (Math.random() - 0.5) * shakeIntensity * 0.1;
+                shakeIntensity *= 0.9;
+            } else {
+                camera.position.x = 0;
+                camera.position.y = 0.5;
+            }
+
+            // Reset arm poses when calm
+            if (currentVolume < damageThreshold * 0.5 && !isScared && currentGesture === 'idle') {
+                resetArmPose(leftArm);
+                resetArmPose(rightArm);
+            }
+
+            updateDamageVisuals();
+            updateTears(deltaTime);
+            updateStars(deltaTime);
+            updateSweat(deltaTime);
+
+            renderer.render(scene, camera);
+        }
+
+        function processAudio(deltaTime) {
+            if (!analyser) return;
+            
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(dataArray);
+            
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+            }
+            // Apply sensitivity - lower sensitivity = need louder sounds
+            currentVolume = Math.min(100, (sum / dataArray.length) * micSensitivity * 2);
+            
+            // Update UI
+            document.getElementById('volumeFill').style.width = currentVolume + '%';
+            document.getElementById('volumeValue').textContent = Math.round(currentVolume);
+
+            // Distress indicator
+            const distressIndicator = document.getElementById('distressIndicator');
+            if (currentVolume > damageThreshold + 30) {
+                distressIndicator.className = 'distress-indicator severe';
+                distressIndicator.textContent = '⚠️ SEVERE DISTRESS ⚠️';
+                distressIndicator.style.opacity = '1';
+            } else if (currentVolume > damageThreshold + 15) {
+                distressIndicator.className = 'distress-indicator moderate';
+                distressIndicator.textContent = 'MODERATE DISTRESS';
+                distressIndicator.style.opacity = '1';
+            } else if (currentVolume > damageThreshold) {
+                distressIndicator.className = 'distress-indicator mild';
+                distressIndicator.textContent = 'Mild Distress';
+                distressIndicator.style.opacity = '1';
+            } else {
+                distressIndicator.style.opacity = '0';
+            }
+
+            if (currentVolume > damageThreshold && comboCooldown <= 0) {
+                const intensity = (currentVolume - damageThreshold) / (100 - damageThreshold);
+                
+                // Increment combo counter
+                comboCounter += deltaTime * 10;
+                
+                // Check for combo protection
+                if (comboCounter >= maxCombo) {
+                    comboCooldown = comboCooldownTime;
+                    speak(comboProtectionPhrases[Math.floor(Math.random() * comboProtectionPhrases.length)]);
+                    return;
+                }
+                
+                // Calculate damage with combo scaling (less damage as combo builds)
+                const comboMultiplier = Math.max(0.3, 1 - (comboCounter / maxCombo) * 0.7);
+                const damage = intensity * intensity * 8 * comboMultiplier;
+                health = Math.max(0, health - damage);
+                trauma = Math.min(100, trauma + intensity * 1.5);
+                updateHealthUI();
+                
+                // Knockback
+                const knockbackForce = intensity * 25;
+                const direction = Math.random() > 0.5 ? 1 : -1;
+                
+                velocity.x += direction * knockbackForce * (0.5 + Math.random() * 0.5);
+                velocity.y += (Math.random() - 0.3) * knockbackForce * 0.6;
+                
+                angularVelocity.x += (Math.random() - 0.5) * knockbackForce * 3;
+                angularVelocity.y += (Math.random() - 0.5) * knockbackForce * 1.5;
+                angularVelocity.z += direction * knockbackForce * 2.5;
+
+                shakeIntensity = Math.max(shakeIntensity, intensity * 5);
+
+                updateHurtAnimation(intensity);
+                updateFaceExpression(intensity);
+
+                if (intensity > 0.5 && Math.random() < 0.1) {
+                    spawnTear();
+                }
+
+                if (damage > 2 && Math.random() < 0.3) {
+                    showDamagePopup(damage);
+                }
+
+                const now = Date.now();
+                if (now - lastYellTime > 600) {
+                    if (health < maxHealth * 0.2) {
+                        speak(criticalPhrases[Math.floor(Math.random() * criticalPhrases.length)], true);
+                    } else if (intensity > 0.4) {
+                        speak(hurtPhrases[Math.floor(Math.random() * hurtPhrases.length)], true);
+                    }
+                    lastYellTime = now;
+                }
+
+                if (health <= 0) {
+                    knockOut();
+                }
+            } else {
+                updateFaceExpression(0);
+            }
+        }
+
+        function spawnTear() {
+            const inactiveTear = tears.find(t => !t.userData.active);
+            if (inactiveTear) {
+                const isLeft = Math.random() > 0.5;
+                inactiveTear.position.set(isLeft ? -0.28 : 0.28, 0, 0.38);
+                inactiveTear.userData.active = true;
+                inactiveTear.userData.velocity = 0;
+                inactiveTear.material.opacity = 1;
+            }
+        }
+
+        function updateTears(deltaTime) {
+            tears.forEach(tear => {
+                if (tear.userData.active) {
+                    tear.userData.velocity += deltaTime * 2;
+                    tear.position.y -= tear.userData.velocity * deltaTime;
+                    tear.material.opacity = Math.max(0, 1 - Math.abs(tear.position.y) * 2);
+                    
+                    if (tear.position.y < -0.5) {
+                        tear.userData.active = false;
+                        tear.material.opacity = 0;
+                    }
+                }
+            });
+        }
+
+        function updateStars(deltaTime) {
+            if (starGroup && starGroup.visible) {
+                stars.forEach(star => {
+                    star.userData.angle += deltaTime * 4;
+                    star.position.x = Math.cos(star.userData.angle) * 0.4;
+                    star.position.z = Math.sin(star.userData.angle) * 0.4;
+                    star.rotation.z += deltaTime * 8;
+                });
+            }
+        }
+
+        function updateSweat(deltaTime) {
+            sweatDrops.forEach(drop => {
+                if (drop.material.opacity > 0) {
+                    drop.position.y -= deltaTime * 0.4;
+                    if (drop.position.y < drop.userData.originalY - 0.7) {
+                        drop.position.y = drop.userData.originalY;
+                    }
+                }
+            });
+        }
+
+        function updateFaceExpression(intensity) {
+            if (!leftEye || !rightEye) return;
+            
+            [leftEye, rightEye].forEach((eye, idx) => {
+                eye.children.forEach(child => {
+                    if (child.userData.type === 'eyebrow') {
+                        child.rotation.z = (idx === 0 ? 1 : -1) * intensity * 0.6;
+                        child.position.y = child.userData.baseY - intensity * 0.03;
+                    }
+                });
+            });
+            
+            const shake = intensity * 0.08;
+            [leftEye, rightEye].forEach(eye => {
+                eye.children.forEach(child => {
+                    if (child.userData.type === 'iris' || child.userData.type === 'pupil') {
+                        child.position.x = child.userData.baseX + currentLook.x + (Math.random() - 0.5) * shake;
+                        child.position.y = child.userData.baseY + currentLook.y + (Math.random() - 0.5) * shake;
+                    }
+                });
+            });
+            
+            if (mouthGroup && !isSpeaking) {
+                mouthGroup.scale.y = 1 + intensity * 2;
+                mouthGroup.scale.x = 1 + intensity * 0.4;
+                mouthGroup.rotation.z = (Math.random() - 0.5) * intensity * 0.15;
+            }
+        }
+
+        function updateDamageVisuals() {
+            const healthPercent = health / maxHealth;
+            
+            bruises.forEach((bruise, i) => {
+                const threshold = 0.9 - (i * 0.12);
+                bruise.material.opacity = healthPercent < threshold 
+                    ? Math.min(0.7, (threshold - healthPercent) * 4) 
+                    : 0;
+            });
+            
+            bandaids.forEach((bandaid, i) => {
+                const threshold = 0.6 - (i * 0.15);
+                const opacity = healthPercent < threshold ? 1 : 0;
+                bandaid.children.forEach(child => {
+                    if (child.material) child.material.opacity = opacity;
+                });
+            });
+            
+            sweatDrops.forEach((drop, i) => {
+                const threshold = 0.75 - (i * 0.1);
+                drop.material.opacity = healthPercent < threshold ? 0.85 : 0;
+            });
+            
+            if (starGroup) starGroup.visible = healthPercent < 0.25;
+            
+            if (ball) {
+                const r = 1;
+                const g = 0.3 + healthPercent * 0.7;
+                const b = 0.3 + healthPercent * 0.7;
+                ball.material.color.setRGB(r, g, b);
+            }
+            
+            document.getElementById('traumaFill').style.width = trauma + '%';
+            document.getElementById('traumaValue').textContent = Math.round(trauma) + '%';
+        }
+
+        function updateHealthUI() {
+            const healthPercent = (health / maxHealth) * 100;
+            document.getElementById('healthCircle').style.background = 
+                `conic-gradient(#ff4757 0%, #ff4757 ${healthPercent}%, rgba(255,255,255,0.1) ${healthPercent}%)`;
+            document.getElementById('healthValue').textContent = Math.round(health);
+        }
+
+        function showDamagePopup(damage) {
+            const popup = document.createElement('div');
+            popup.className = 'damage-popup';
+            popup.textContent = '-' + Math.round(damage);
+            popup.style.left = (container.clientWidth / 2 + (Math.random() - 0.5) * 250) + 'px';
+            popup.style.top = (container.clientHeight / 2 + (Math.random() - 0.5) * 150) + 'px';
+            container.appendChild(popup);
+            setTimeout(() => popup.remove(), 1000);
+        }
+
+        function showHealPopup() {
+            const popup = document.createElement('div');
+            popup.className = 'heal-popup';
+            popup.textContent = '+3';
+            popup.style.left = (container.clientWidth / 2 + (Math.random() - 0.5) * 80) + 'px';
+            popup.style.top = (container.clientHeight / 2) + 'px';
+            container.appendChild(popup);
+            setTimeout(() => popup.remove(), 1000);
+        }
+
+        function knockOut() {
+            isKnockedOut = true;
+            document.getElementById('koOverlay').classList.add('active');
+            speak(koPhrases[Math.floor(Math.random() * koPhrases.length)], true);
+            
+            if (leftX) leftX.visible = true;
+            if (rightX) rightX.visible = true;
+            if (leftEye) leftEye.visible = false;
+            if (rightEye) rightEye.visible = false;
+        }
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            health = maxHealth;
+            trauma = Math.max(0, trauma - 30);
+            isKnockedOut = false;
+            isScared = false;
+            currentGesture = 'idle';
+            comboCounter = 0;
+            comboCooldown = 0;
+            
+            updateHealthUI();
+            
+            if (geeblerGroup) {
+                geeblerGroup.position.set(0, 0, 0);
+                geeblerGroup.rotation.set(0, 0, 0);
+            }
+            velocity = { x: 0, y: 0, z: 0 };
+            angularVelocity = { x: 0, y: 0, z: 0 };
+            shakeIntensity = 0;
+            
+            if (leftX) leftX.visible = false;
+            if (rightX) rightX.visible = false;
+            if (leftEye) leftEye.visible = true;
+            if (rightEye) rightEye.visible = true;
+            
+            // Reset eyelids to open
+            [leftEye, rightEye].forEach(eye => {
+                if (!eye) return;
+                eye.children.forEach(child => {
+                    if (child.userData.type === 'eyelid') {
+                        child.scale.y = 0;
+                    }
+                });
+            });
+            
+            if (ball) ball.material.color.setHex(0xffffff);
+            
+            resetArmPose(leftArm);
+            resetArmPose(rightArm);
+            resetLegPose(leftLeg);
+            resetLegPose(rightLeg);
+            resetEyebrows();
+            
+            tears.forEach(tear => {
+                tear.userData.active = false;
+                tear.material.opacity = 0;
+            });
+            
+            document.getElementById('koOverlay').classList.remove('active');
+            document.getElementById('distressIndicator').style.opacity = '0';
+            document.getElementById('comboIndicator').style.opacity = '0';
+            document.getElementById('comboStatus').style.opacity = '0';
+            
+            speak("I... I live again. The nightmare continues.");
+        });
+
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+        });
+
+        init();
+    </script>
+</body>
+</html>
